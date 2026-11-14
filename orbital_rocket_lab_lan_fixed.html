@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ORBITAL | Rocket Lab v3</title>
+<title>ORBITAL | Rocket Lab v3 - Multiplayer Fix</title>
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
 <script>
+window.addEventListener("DOMContentLoaded",()=>{
 // ==================== LAN MULTIPLAYER (ADDITIVE) ====================
 // Each browser keeps its own flight simulation. The server only relays player state.
 const lan = {
@@ -14,7 +15,7 @@ const lanCount = ()=>{ $("lanPeers").textContent="Bağlı oyuncu: "+lan.peers.si
 function lanMakeRemote(id, data){
   const n=new BABYLON.TransformNode("remote_"+id,scene);
   const meshes=[];
-  const colorByType={engine:"#b8c2cc",tank:"#f4f5f7",body:"#f4f5f7",payload:"#d8e0e8",shield:"#353b43",chute:"#e8e0d0",capsule:"#f7f7f4",decoupler:"#c92d35"};
+  const colorByType={engine:"#c7cdd3",tank:"#f8f8f8",body:"#ffffff",payload:"#f0f0f0",shield:"#343b43",chute:"#f4f4f4",capsule:"#ffffff",decoupler:"#c92332"};
   let y=0;
   (Array.isArray(data.modules)?data.modules:[]).slice(0,14).forEach((type)=>{
     const d=defs[type]; if(!d)return;
@@ -46,6 +47,7 @@ function lanApplyState(data){
   p.node.position.set(Number(data.pos?.[0])||0,Number(data.pos?.[1])||0,Number(data.pos?.[2])||0);
   p.node.rotation.z=Number(data.rot)||0;
   p.name=data.name||p.name;
+  if(typeof checkRocketCollision === "function") checkRocketCollision(data.id, p);
   // A remote player with no assembled rocket remains represented by their name label.
 }
 function lanRemovePeer(id){
@@ -94,15 +96,13 @@ function lanDisconnect(){
   lan.connected=false;
   $("lanConnect").classList.remove("hidden");$("lanDisconnect").classList.add("hidden");
 }
-window.addEventListener("DOMContentLoaded",()=>{
-  $("lanConnect").addEventListener("click",lanConnect);
-  $("lanDisconnect").addEventListener("click",lanDisconnect);
-});
+$("lanConnect").addEventListener("click",lanConnect);
+$("lanDisconnect").addEventListener("click",lanDisconnect);
 setInterval(lanSendState,100);
 // Clean up peers that stopped sending updates unexpectedly.
 setInterval(()=>{const now=performance.now();lan.peers.forEach((p,id)=>{if(now-p.lastSeen>8000)lanRemovePeer(id);});},2000);
 // ================== END LAN MULTIPLAYER ==================
-
+});
 </script>
 <style>
 :root{--cyan:#68e2ff;--line:rgba(104,226,255,.28);--muted:#9bb4ca}
@@ -257,6 +257,14 @@ let c1=false,c2=false,k1=0,k2=0,retro=false;const WARP=[1,5,25,100],earned=new S
 const say=t=>$("status").textContent=t;
 function toast(t){const e=document.createElement("div");e.className="toast";e.textContent="★ "+t;$("toasts").appendChild(e);setTimeout(()=>e.remove(),4600)}
 function ach(id,t){if(earned.has(id))return;earned.add(id);toast(t)}
+const collisionCooldown=new Map();
+function checkRocketCollision(id, peer){
+ if(!launched || !peer || !peer.node || dead) return;
+ const now=performance.now(), last=collisionCooldown.get(id)||0;
+ if(now-last<5000) return;
+ const dx=root.position.x-peer.node.position.x, dy=root.position.y-peer.node.position.y, dz=root.position.z-peer.node.position.z;
+ if(dx*dx+dy*dy+dz*dz<16){ collisionCooldown.set(id,now); ach("ayvalik","AYVALIK TOSTU · ROKET ÇARPIŞMASI"); say("ROKET ÇARPIŞMASI! AYVALIK TOSTU başarımı açıldı."); }
+}
 // MESH
 function buildMesh(type){
  const d=defs[type];let m;

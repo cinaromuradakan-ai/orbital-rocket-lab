@@ -7,6 +7,8 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 const GAME_FILE = path.join(__dirname, 'orbital_rocket_lab_lan_fixed.html');
 const clients = new Map();
+const MAX_NAME = 18;
+const MAX_MODULES = 14;
 
 const server = http.createServer((req, res) => {
   if (req.url === '/healthz') {
@@ -47,10 +49,10 @@ wss.on('connection', ws => {
     const state = {
       type: 'state',
       id: msg.id.slice(0, 80),
-      name: String(msg.name || 'Astronot').slice(0, 18),
-      pos: Array.isArray(msg.pos) ? msg.pos.slice(0, 3).map(v => Number(v) || 0) : [0, 0, 0],
+      name: String(msg.name || 'Astronot').replace(/[<>]/g, '').slice(0, MAX_NAME),
+      pos: Array.isArray(msg.pos) ? msg.pos.slice(0, 3).map(v => Number.isFinite(Number(v)) ? Math.max(-1e7, Math.min(1e7, Number(v))) : 0) : [0, 0, 0],
       rot: Number(msg.rot) || 0,
-      modules: Array.isArray(msg.modules) ? msg.modules.slice(0, 14).filter(v => typeof v === 'string') : [],
+      modules: Array.isArray(msg.modules) ? msg.modules.slice(0, MAX_MODULES).filter(v => typeof v === 'string').map(v => v.slice(0, 24)) : [],
       altitude: Number(msg.altitude) || 0,
       launched: !!msg.launched,
       landed: !!msg.landed

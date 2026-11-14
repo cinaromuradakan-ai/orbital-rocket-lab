@@ -94,8 +94,10 @@ function lanDisconnect(){
   lan.connected=false;
   $("lanConnect").classList.remove("hidden");$("lanDisconnect").classList.add("hidden");
 }
-$("lanConnect").addEventListener("click",lanConnect);
-$("lanDisconnect").addEventListener("click",lanDisconnect);
+window.addEventListener("DOMContentLoaded",()=>{
+  $("lanConnect").addEventListener("click",lanConnect);
+  $("lanDisconnect").addEventListener("click",lanDisconnect);
+});
 setInterval(lanSendState,100);
 // Clean up peers that stopped sending updates unexpectedly.
 setInterval(()=>{const now=performance.now();lan.peers.forEach((p,id)=>{if(now-p.lastSeen>8000)lanRemovePeer(id);});},2000);
